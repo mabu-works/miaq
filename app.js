@@ -502,6 +502,7 @@ function init() {
 
   updateCharCount();
   updateAvatarPreviewInitial();
+  initSecret();
 
   ensureFonts()
     .then(function () { setStatus("準備できました。入力して「画像を生成」を押してください。", false); })
@@ -509,6 +510,136 @@ function init() {
       console.error(err);
       setStatus("フォントの読み込みに失敗しました。再読み込みしてください。", true);
     });
+}
+
+// ===== 8. 隠し機能: Discord アイコン取得 =====
+// 通常の画面には出ないパネル。出し方は3通り:
+// (1) キーボードで「discord」と打つ (2) フッターのクレジットを2秒以内に5回タップ
+// (3) URL パラメータ ?uid=<ユーザーID> (開いて自動取得まで行う)
+// ユーザー情報の照会には外部API (japi.rest) を使い、画像は Discord CDN から
+// 直接読み込む (CDN は CORS 許可済みのため Canvas が汚染されない)。
+// 照会に送られるのは入力したユーザーIDだけ。
+
+function discordAvatarUrl(user, size) {
+  if (user.avatar) {
+    return "https://cdn.discordapp.com/avatars/" + user.id + "/" + user.avatar + ".png?size=" + size;
+  }
+  // カスタムアイコン未設定: デフォルトアイコンの番号を ID から決める
+  var idx;
+  if (!user.discriminator || user.discriminator === "0") {
+    idx = Number((BigInt(user.id) >> 22n) % 6n);
+  } else {
+    idx = parseInt(user.discriminator, 10) % 5;
+  }
+  return "https://cdn.discordapp.com/embed/avatars/" + idx + ".png";
+}
+
+function setSecretStatus(msg, isError) {
+  els.secretStatus.textContent = msg;
+  els.secretStatus.classList.toggle("error", !!isError);
+}
+
+function toggleSecretPanel(show) {
+  var willShow = typeof show === "boolean" ? show : els.secretPanel.hidden;
+  els.secretPanel.hidden = !willShow;
+  if (willShow) els.secretUserId.focus();
+}
+
+async function fetchDiscordAvatar() {
+  var id = els.secretUserId.value.trim();
+  if (!/^\d{17,20}$/.test(id)) {
+    setSecretStatus("ユーザーIDは17〜20桁の数字で入力してください。", true);
+    return;
+  }
+  els.secretFetchBtn.disabled = true;
+  setSecretStatus("Discord のユーザー情報を照会中…", false);
+  var data;
+  try {
+    var res = await fetch("https://japi.rest/discord/v1/user/" + id);
+    var json = await res.json();
+    data = json && json.data;
+  } catch (e) {
+    setSecretStatus("照会に失敗しました。通信環境を確認してもう一度お試しください。", true);
+    els.secretFetchBtn.disabled = false;
+    return;
+  }
+  if (!data || !data.id || data.message) {
+    setSecretStatus("そのユーザーIDは見つかりませんでした。", true);
+    els.secretFetchBtn.disabled = false;
+    return;
+  }
+  var fullUrl = discordAvatarUrl(data, 4096);
+  var img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = function () {
+    setAvatarImage(img, "Discord: " + data.username);
+    els.displayName.value = data.global_name || data.username || "";
+    els.username.value = data.username || "";
+    els.secretAvatarLink.href = fullUrl;
+    els.secretLinks.hidden = false;
+    setSecretStatus("「" + (data.global_name || data.username) + "」のアイコンを設定しました。表示名とユーザー名も反映しています。", false);
+    setStatus("Discord のアイコンを読み込みました。「画像を生成」を押してください。", false);
+    els.secretFetchBtn.disabled = false;
+  };
+  img.onerror = function () {
+    setSecretStatus("アイコン画像の読み込みに失敗しました。", true);
+    els.secretFetchBtn.disabled = false;
+  };
+  img.src = discordAvatarUrl(data, 1024);
+}
+
+function initSecret() {
+  els.secretPanel = $("secretPanel");
+  els.secretUserId = $("secretUserId");
+  els.secretFetchBtn = $("secretFetchBtn");
+  els.secretStatus = $("secretStatus");
+  els.secretLinks = $("secretLinks");
+  els.secretAvatarLink = $("secretAvatarLink");
+
+  els.secretFetchBtn.addEventListener("click", fetchDiscordAvatar);
+  els.secretUserId.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      fetchDiscordAvatar();
+    }
+  });
+
+  // トリガー1: キーボードで「discord」と打つ (入力欄にフォーカスがある時を除く)
+  var seq = "";
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+    if (e.key && e.key.length === 1) {
+      seq = (seq + e.key.toLowerCase()).slice(-7);
+      if (seq === "discord") {
+        toggleSecretPanel();
+        seq = "";
+      }
+    }
+  });
+
+  // トリガー2: フッターのクレジットを2秒以内に5回タップ/クリック
+  var taps = [];
+  var trigger = $("secretTrigger");
+  if (trigger) {
+    trigger.addEventListener("click", function () {
+      var now = Date.now();
+      taps = taps.filter(function (t) { return now - t < 2000; });
+      taps.push(now);
+      if (taps.length >= 5) {
+        toggleSecretPanel();
+        taps = [];
+      }
+    });
+  }
+
+  // トリガー3: ?uid=<ユーザーID> で開いて自動取得
+  var uid = new URLSearchParams(location.search).get("uid");
+  if (uid && /^\d{17,20}$/.test(uid)) {
+    els.secretUserId.value = uid;
+    toggleSecretPanel(true);
+    fetchDiscordAvatar();
+  }
 }
 
 if (document.readyState === "loading") {

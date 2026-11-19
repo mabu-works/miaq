@@ -124,3 +124,17 @@ input[type="text"]:focus, textarea:focus { border-color: #7a7a96; outline: none;
   .layout { grid-template-columns: 1fr; }
   .site-header { padding-top: 24px; }
 }
+
+.secret-panel {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+.secret-title { margin: 0 0 6px; font-weight: 700; }
+.secret-desc { margin: 0 0 10px; color: var(--muted); font-size: 0.85rem; }
+.secret-row { display: flex; gap: 8px; }
+.secret-row input { flex: 1; min-width: 0; }
+.secret-links { margin: 8px 0 0; font-size: 0.9rem; }
+.secret-links a { color: var(--accent); }

@@ -1,5 +1,5 @@
 // Make It a Quote Webメーカー service worker: フォント含め殻をキャッシュしてオフラインでも動くようにする
-const CACHE = "miaq-v1";
+const CACHE = "miaq-v2";
 const CORE = [
   "/",
   "/index.html",
