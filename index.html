@@ -6,12 +6,29 @@
 <title>Make It a Quote Webメーカー | 引用画像ジェネレータ</title>
 <meta name="description" content="アバターとテキストから、名言風の引用画像（1200×630 PNG）をブラウザだけで生成できるツールです。画像はサーバーに送信されません。">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#0b0b0f">
+<meta name="theme-color" content="#0a0f1c">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
+<script>
+try {
+  var savedTheme = localStorage.getItem("miaq-theme");
+  if (savedTheme === "light" || savedTheme === "dark") {
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  }
+} catch (e) { /* テーマ保存が使えない環境ではダークを既定にする */ }
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="site-header">
+<nav class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="#top">引用画像メーカー</a>
+    <span class="topbar-links">
+      <button type="button" class="theme-toggle" id="themeToggle" aria-label="テーマ切り替え">🌙</button>
+    </span>
+  </div>
+</nav>
+
+<header class="site-header" id="top">
   <div class="wrap">
     <p class="eyebrow">MAKE IT A QUOTE — WEB</p>
     <h1>引用画像メーカー</h1>
