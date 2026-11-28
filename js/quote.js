@@ -63,7 +63,6 @@ function wrapText(text, maxWidth, measure) {
       continue;
     }
     var line = "";
-    var lineCps = 0; // 現在行のコードポイント数
     var chars = codePoints(paragraph);
     for (var i = 0; i < chars.length; i++) {
       var ch = chars[i];
@@ -71,19 +70,16 @@ function wrapText(text, maxWidth, measure) {
         // 📝 行頭の空白（半角・全角）は捨てる
         if (ch === " " || ch === "　") continue;
         line = ch;
-        lineCps = 1;
         continue;
       }
       if (measure(line + ch) <= maxWidth) {
         line += ch;
-        lineCps++;
         continue;
       }
       // ↩️ ここで折り返しが発生する
       if (NO_LINE_START.indexOf(ch) !== -1) {
         // 📝 行頭禁則: その文字は前の行に追い込む（多少はみ出しても崩さない）
         line += ch;
-        lineCps++;
         continue;
       }
       var lastCps = codePoints(line);
@@ -92,17 +88,10 @@ function wrapText(text, maxWidth, measure) {
         // 📝 行末禁則: 開き括弧は次の行へ送る
         lines.push(lastCps.slice(0, -1).join(""));
         line = last + ch;
-        lineCps = 2;
         continue;
       }
       lines.push(line);
-      if (ch === " " || ch === "　") {
-        line = "";
-        lineCps = 0;
-      } else {
-        line = ch;
-        lineCps = 1;
-      }
+      line = ch === " " || ch === "　" ? "" : ch;
     }
     if (line !== "" || lines.length === 0) lines.push(line);
   }
