@@ -1,0 +1,1 @@
+{"description":"Make It a Quote Webメーカー（静的サイト + PWA）","name":"miaq","private":true,"scripts":{"check":"node --check js/quote.js && node --check js/app.js && node --check sw.js","test":"node --test"},"version":"1.0.0"}
